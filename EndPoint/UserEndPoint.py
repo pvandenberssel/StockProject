@@ -1,36 +1,15 @@
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
-import os
-
-app = Flask(__name__)
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'crud.sqlite')
-db = SQLAlchemy(app)
-ma = Marshmallow(app)
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True)
-    email = db.Column(db.String(120), unique=True)
-
-    def __init__(self, username, email):
-        self.username = username
-        self.email = email
-
-
-class UserSchema(ma.Schema):
-    class Meta:
-        # Fields to expose
-        fields = ('username', 'email')
-
+from init import db,app,ma, request, jsonify
+from Domain.User import User
+from Controller.UserSchema import UserSchema
+from flask import Blueprint
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 
+user_api = Blueprint('user_api',__name__)
 
 # endpoint to create new user
-@app.route("/user", methods=["POST"])
+@user_api.route("/user", methods=["POST"])
 def add_user():
     username = request.json['username']
     email = request.json['email']
@@ -45,7 +24,7 @@ def add_user():
 
 
 # endpoint to show all users
-@app.route("/user", methods=["GET"])
+@user_api.route("/user", methods=["GET"])
 def get_user():
     all_users = User.query.all()
     result = users_schema.dump(all_users)
@@ -53,14 +32,14 @@ def get_user():
 
 
 # endpoint to get user detail by id
-@app.route("/user/<id>", methods=["GET"])
+@user_api.route("/user/<id>", methods=["GET"])
 def user_detail(id):
     user = User.query.get(id)
     return user_schema.jsonify(user)
 
 
 # endpoint to update user
-@app.route("/user/<id>", methods=["PUT"])
+@user_api.route("/user/<id>", methods=["PUT"])
 def user_update(id):
     user = User.query.get(id)
     username = request.json['username']
@@ -74,7 +53,7 @@ def user_update(id):
 
 
 # endpoint to delete user
-@app.route("/user/<id>", methods=["DELETE"])
+@user_api.route("/user/<id>", methods=["DELETE"])
 def user_delete(id):
     user = User.query.get(id)
     db.session.delete(user)
@@ -82,7 +61,6 @@ def user_delete(id):
 
     return user_schema.jsonify(user)
 
-
-if __name__ == '__main__':
-    db.create_all()
-    app.run(debug=True)
+@user_api.route("/")
+def hello():
+    print("hello")
